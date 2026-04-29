@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<title>Pica Run – Wireframe v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── Design System Palette ──
+     #FF6A4A  coral accent
+     #0F1226  near-black bg
+     #2E3251  card/panel bg
+     #5A5F7E  secondary text
+     #FCF8F4  warm cream / text on dark
+  */
+
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #070710;
+    color: #FCF8F4;
+    padding: 28px 24px;
+  }
+
+  h1 { font-size: 16px; letter-spacing: 3px; color: #FCF8F4; font-weight: 700; }
+  .sub { font-size: 11px; color: #5A5F7E; margin-top: 3px; margin-bottom: 32px; letter-spacing: .5px; }
+
+  .screens { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+
+  .screen-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .screen-label { font-size: 9px; color: #FF6A4A; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; }
+  .screen-note  { font-size: 10px; color: #5A5F7E; text-align: center; max-width: 210px; line-height: 1.6; }
+
+  /* ── Phone frame ── */
+  .phone {
+    width: 210px; height: 400px;
+    background: #0F1226;
+    border: 1.5px solid #2E3251;
+    border-radius: 28px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── Desktop frame ── */
+  .desktop {
+    width: 500px; height: 320px;
+    background: #0F1226;
+    border: 1.5px solid #2E3251;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    background: #0F1226;
+    border-bottom: 1px solid #2E3251;
+    padding: 11px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .logo { font-size: 11px; font-weight: 800; letter-spacing: 3px; color: #FCF8F4; }
+  .logo span { color: #FF6A4A; }
+
+  /* ── Panel ── */
+  .panel {
+    padding: 12px 13px;
+    display: flex; flex-direction: column; gap: 10px;
+    overflow: hidden;
+  }
+
+  .sec-label {
+    font-size: 8px; text-transform: uppercase;
+    letter-spacing: 1.2px; color: #5A5F7E; font-weight: 600;
+  }
+
+  /* ── Shape chips ── */
+  .shape-row { display: flex; gap: 4px; }
+  .shape-chip {
+    flex: 1;
+    background: #2E3251;
+    border: 1.5px solid #2E3251;
+    border-radius: 8px;
+    height: 44px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 3px;
+    font-size: 7px; color: #5A5F7E;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .shape-chip svg { width: 16px; height: 16px; }
+  .shape-chip.active {
+    border-color: #FF6A4A;
+    color: #FF6A4A;
+    background: rgba(255,106,74,.08);
+  }
+
+  /* ── GPS button ── */
+  .geo-btn {
+    background: #2E3251;
+    border: 1px solid #2E3251;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 9px; color: #5A5F7E;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .geo-btn .dot { width: 6px; height: 6px; background: #FF6A4A; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── Inputs ── */
+  .inp-row { display: flex; gap: 6px; align-items: center; }
+  .inp {
+    flex: 1;
+    background: #2E3251; border: 1px solid #3a3f60;
+    border-radius: 8px; padding: 7px 10px;
+    font-size: 10px; color: #FCF8F4;
+  }
+  .inp .lbl { font-size: 7px; color: #5A5F7E; margin-bottom: 1px; }
+  .inp .val { font-size: 11px; font-weight: 600; }
+
+  .rotate-btn {
+    background: #2E3251;
+    border: 1.5px solid #3a3f60;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 8px; color: #FCF8F4;
+    display: flex; align-items: center; gap: 4px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .rotate-btn svg { width: 11px; height: 11px; }
+
+  /* ── Generate button ── */
+  .gen-btn {
+    background: #FF6A4A;
+    border: none; border-radius: 10px;
+    padding: 10px;
+    font-size: 10px; font-weight: 800; color: #FCF8F4;
+    text-align: center; letter-spacing: 1.5px;
+  }
+
+  /* ── Result ── */
+  .result-card {
+    background: #2E3251;
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .result-card .big { font-size: 22px; font-weight: 800; color: #FF6A4A; }
+  .result-card .unit { font-size: 10px; color: #5A5F7E; margin-top: 2px; }
+
+  /* ── Map ── */
+  .map-area {
+    flex: 1; background: #141428;
+    position: relative; overflow: hidden;
+  }
+  .map-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(46,50,81,.35) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(46,50,81,.35) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  /* ── Start dot ── */
+  .sdot {
+    position: absolute;
+    width: 11px; height: 11px;
+    background: #FF6A4A;
+    border: 2px solid #FCF8F4;
+    border-radius: 50%;
+    transform: translate(-50%,-50%);
+    box-shadow: 0 0 8px #FF6A4A88;
+  }
+
+  /* ── Map back btn ── */
+  .map-back {
+    position: absolute; top: 8px; left: 8px;
+    background: rgba(15,18,38,.92);
+    border: 1px solid #2E3251;
+    border-radius: 7px; padding: 5px 10px;
+    font-size: 8px; color: #FCF8F4;
+    backdrop-filter: blur(4px);
+  }
+
+  /* ── Map stats overlay ── */
+  .map-stats {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    background: rgba(15,18,38,.95);
+    border: 1px solid #2E3251;
+    border-radius: 14px; padding: 8px 20px;
+    font-size: 10px; color: #5A5F7E;
+    backdrop-filter: blur(6px);
+    white-space: nowrap;
+    display: flex; align-items: baseline; gap: 6px;
+  }
+  .map-stats .km { font-size: 20px; font-weight: 800; color: #FF6A4A; }
+
+  /* ── Desktop sidebar ── */
+  .sidebar {
+    width: 175px; min-width: 175px;
+    background: #0F1226;
+    border-right: 1px solid #2E3251;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  hr.sep { border: none; border-top: 1px solid #2E3251; }
+
+  .annotation {
+    font-size: 9px; color: #5A5F7E; line-height: 1.8;
+    max-width: 215px; margin-top: 4px;
+  }
+  .annotation b { color: #FF6A4A; }
+
+  .palette-row {
+    display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 28px;
+  }
+  .swatch {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .swatch-color {
+    width: 40px; height: 40px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  .swatch-name { font-size: 8px; color: #5A5F7E; text-align: center; }
+  .swatch-hex  { font-size: 8px; color: #FCF8F4; text-align: center; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>PICA RUN — WIREFRAME v2</h1>
+<p class="sub">Design System aplikován · Kosočtverec první · Jen délka · Tlačítko Otočit</p>
+
+<!-- ── Palette preview ── -->
+<div class="palette-row">
+  <div class="swatch"><div class="swatch-color" style="background:#FF6A4A"></div><div class="swatch-name">Accent</div><div class="swatch-hex">#FF6A4A</div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#0F1226"></div><div class="swatch-name">BG Dark</div><div class="swatch-hex">#0F1226</div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#2E3251"></div><div class="swatch-name">Panel</div><div class="swatch-hex">#2E3251</div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#5A5F7E"></div><div class="swatch-name">Secondary</div><div class="swatch-hex">#5A5F7E</div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#FCF8F4"></div><div class="swatch-name">Cream</div><div class="swatch-hex">#FCF8F4</div></div>
+</div>
+
+<div class="screens">
+
+  <!-- ── MOBIL: Nastavení ── -->
+  <div class="screen-wrap">
+    <div class="screen-label">Mobil · Nastavení</div>
+    <div class="phone">
+      <div class="topbar">
+        <span class="logo">PICA<span>RUN</span></span>
+      </div>
+      <div class="panel">
+
+        <div class="sec-label">Tvar trasy</div>
+        <div class="shape-row">
+          <!-- 1. Kosočtverec (PRVNÍ) -->
+          <div class="shape-chip active">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polygon points="8,1 15,8 8,15 1,8"/>
+            </svg>
+            Koso
+          </div>
+          <!-- 2. Kruh -->
+          <div class="shape-chip">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="8" r="6"/>
+            </svg>
+            Kruh
+          </div>
+          <!-- 3. Čtverec -->
+          <div class="shape-chip">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="2" width="12" height="12" rx="1"/>
+            </svg>
+            Čtv.
+          </div>
+          <!-- 4. Trojúhelník -->
+          <div class="shape-chip">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polygon points="8,2 14,14 2,14"/>
+            </svg>
+            Troj.
+          </div>
+          <!-- 5. Pětiúhelník -->
+          <div class="shape-chip">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polygon points="8,1 15,6 12,14 4,14 1,6"/>
+            </svg>
+            5-úhel
+          </div>
+        </div>
+
+        <div class="sec-label">Výchozí bod</div>
+        <div class="geo-btn">
+          <div class="dot"></div>
+          Moje poloha (GPS)
+        </div>
+
+        <div class="sec-label">Délka trasy</div>
+        <div class="inp-row">
+          <div class="inp">
+            <div class="lbl">Kilometry</div>
+            <div class="val">5 km</div>
+          </div>
+          <div class="rotate-btn">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M10 6A4 4 0 1 1 6 2"/>
+              <polyline points="6,0 8.5,2 6,4"/>
+            </svg>
+            Otočit
+          </div>
+        </div>
+
+        <div class="gen-btn">GENEROVAT TRASU</div>
+
+        <hr class="sep">
+
+        <div class="sec-label">Výsledek</div>
+        <div class="result-card">
+          <div>
+            <div class="big">5.1</div>
+          </div>
+          <div class="unit">km · trasa vygenerována</div>
+        </div>
+
+      </div>
+    </div>
+    <div class="annotation">
+      <b>→</b> Kosočtverec je první a výchozí tvar<br>
+      <b>→</b> Otočit přidá 45° při každém kliknutí<br>
+      <b>→</b> Zobrazuje se jen délka trasy v km<br>
+      <b>→</b> GPS se spustí automaticky při načtení
+    </div>
+  </div>
+
+  <!-- ── MOBIL: Mapa ── -->
+  <div class="screen-wrap">
+    <div class="screen-label">Mobil · Mapa</div>
+    <div class="phone">
+      <div class="map-area" style="flex:1">
+        <div class="map-grid"></div>
+        <!-- Diamond route -->
+        <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 210 360">
+          <polygon points="105,40 170,180 105,320 40,180"
+            fill="none" stroke="#FF6A4A" stroke-width="3"
+            stroke-linejoin="round"
+            style="filter:drop-shadow(0 0 6px #FF6A4A66)"/>
+        </svg>
+        <div class="sdot" style="left:105px;top:40px"></div>
+        <div class="map-back">← Zpět</div>
+        <div class="map-stats">
+          <span class="km">5.1</span>
+          <span>km</span>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">
+      <b>→</b> Full screen mapa při generování<br>
+      <b>→</b> Délka trasy dole uprostřed<br>
+      <b>→</b> Korálová tečka = start/cíl<br>
+      <b>→</b> Zpět = návrat k nastavení
+    </div>
+  </div>
+
+  <!-- ── DESKTOP ── -->
+  <div class="screen-wrap">
+    <div class="screen-label">Desktop · Kombinovaný pohled</div>
+    <div class="desktop">
+      <div class="sidebar">
+        <div class="topbar" style="padding:9px 12px">
+          <span class="logo" style="font-size:10px">PICA<span>RUN</span></span>
+        </div>
+        <div class="panel" style="gap:8px;padding:10px 11px">
+          <div class="sec-label">Tvar</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
+            <div class="shape-chip active" style="height:36px;font-size:7px">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px"><polygon points="8,1 15,8 8,15 1,8"/></svg>
+              Koso
+            </div>
+            <div class="shape-chip" style="height:36px;font-size:7px">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px"><circle cx="8" cy="8" r="6"/></svg>
+              Kruh
+            </div>
+            <div class="shape-chip" style="height:36px;font-size:7px">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px"><rect x="2" y="2" width="12" height="12" rx="1"/></svg>
+              Čtverec
+            </div>
+            <div class="shape-chip" style="height:36px;font-size:7px">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px"><polygon points="8,2 14,14 2,14"/></svg>
+              Trojúhel.
+            </div>
+            <div class="shape-chip" style="height:36px;font-size:7px;grid-column:1/-1">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px"><polygon points="8,1 15,6 12,14 4,14 1,6"/></svg>
+              Pětiúhelník
+            </div>
+          </div>
+
+          <div class="sec-label">GPS</div>
+          <div class="geo-btn" style="font-size:8px">
+            <div class="dot"></div> Moje poloha
+          </div>
+
+          <div class="sec-label">Délka / Rotace</div>
+          <div class="inp-row" style="gap:4px">
+            <div class="inp" style="padding:5px 8px">
+              <div class="lbl">km</div>
+              <div class="val" style="font-size:10px">5 km</div>
+            </div>
+            <div class="rotate-btn" style="font-size:7px;padding:5px 8px">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" style="width:9px;height:9px">
+                <path d="M10 6A4 4 0 1 1 6 2"/>
+                <polyline points="6,0 8.5,2 6,4"/>
+              </svg>
+              Otočit
+            </div>
+          </div>
+
+          <div class="gen-btn" style="font-size:8px;padding:8px;letter-spacing:1px">GENEROVAT</div>
+
+          <hr class="sep">
+          <div class="result-card" style="padding:8px 10px">
+            <div class="big" style="font-size:18px">5.1</div>
+            <div class="unit" style="font-size:8px">km</div>
+          </div>
+        </div>
+      </div>
+      <!-- Map -->
+      <div class="map-area">
+        <div class="map-grid"></div>
+        <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 325 320">
+          <polygon points="162,30 270,160 162,290 55,160"
+            fill="none" stroke="#FF6A4A" stroke-width="3" stroke-linejoin="round"
+            style="filter:drop-shadow(0 0 8px #FF6A4A55)"/>
+        </svg>
+        <div class="sdot" style="left:162px;top:30px"></div>
+        <div class="map-stats" style="font-size:11px;bottom:12px">
+          <span class="km" style="font-size:22px">5.1</span>
+          <span>km</span>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">
+      <b>→</b> Desktop: panel stálý vlevo, mapa vpravo<br>
+      <b>→</b> Délka trasy dole na mapě jako pill<br>
+      <b>→</b> Kosočtverec je výchozí tvar
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
