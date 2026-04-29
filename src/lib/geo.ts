@@ -23,7 +23,8 @@ export function geodesicOffset(
   return [(λ2 * 180) / Math.PI, (φ2 * 180) / Math.PI];
 }
 
-/** Střed mezi dvěma body [lon, lat]. */
+/** Střed mezi dvěma body [lon, lat].
+ *  Používá aritmetický průměr – přesné pouze pro blízké body (< ~50 km). */
 export function midpoint(
   a: [number, number],
   b: [number, number],

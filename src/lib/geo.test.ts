@@ -33,6 +33,20 @@ describe('geodesicOffset', () => {
     // lon (14.x) je menší než lat (50.x)
     expect(result[0]).toBeLessThan(result[1]);
   });
+
+  it('bearing > 360 se zpracuje správně (periodická funkce)', () => {
+    const [lon1, lat1] = geodesicOffset(50.0, 14.0, 1000, 45);
+    const [lon2, lat2] = geodesicOffset(50.0, 14.0, 1000, 45 + 360);
+    expect(lat1).toBeCloseTo(lat2, 8);
+    expect(lon1).toBeCloseTo(lon2, 8);
+  });
+
+  it('záporný bearing se zpracuje správně', () => {
+    const [lon1, lat1] = geodesicOffset(50.0, 14.0, 1000, -90);
+    const [lon2, lat2] = geodesicOffset(50.0, 14.0, 1000, 270);
+    expect(lat1).toBeCloseTo(lat2, 8);
+    expect(lon1).toBeCloseTo(lon2, 8);
+  });
 });
 
 describe('midpoint', () => {
