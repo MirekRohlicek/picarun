@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pica Run – Generátor tvarů</title>
+  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; display: flex; height: 100vh; overflow: hidden; background: #0a0a15; color: #ddd; }
+
+    /* ── Panel ─────────────────────────────────────────────────────── */
+    #panel {
+      width: 300px; min-width: 300px;
+      display: flex; flex-direction: column;
+      background: #10101e; border-right: 1px solid #1c1c30;
+      overflow-y: auto; scrollbar-width: thin; scrollbar-color: #222 #10101e;
+    }
+
+    .ph { padding: 16px 14px; border-bottom: 1px solid #1c1c30; }
+    .ph h1 { font-size: 17px; letter-spacing: 2px; color: #fff; }
+    .ph p  { font-size: 10px; color: #444; margin-top: 2px; letter-spacing: .5px; }
+
+    .sec { padding: 12px 14px; border-bottom: 1px solid #1c1c30; }
+    .sec-title { font-size: 9px; text-transform: uppercase; letter-spacing: 1.2px; color: #444; margin-bottom: 10px; }
+
+    .field { margin-bottom: 9px; }
+    .field:last-child { margin-bottom: 0; }
+    label { display: block; font-size: 10px; color: #666; margin-bottom: 3px; }
+
+    input[type="number"], input[type="password"] {
+      width: 100%; padding: 7px 10px;
+      background: #0a0a18; border: 1px solid #1e1e38;
+      border-radius: 6px; color: #ddd; font-size: 13px;
+      transition: border-color .15s;
+    }
+    input:focus { outline: none; border-color: #4d7fff; }
+
+    .row { display: flex; gap: 7px; }
+    .row .field { flex: 1; }
+
+    .hint { font-size: 10px; color: #3a3a5a; margin-top: 3px; line-height: 1.4; }
+    .hint a { color: #4d7fff; text-decoration: none; }
+
+    /* ── Shape picker ──────────────────────────────────────────────── */
+    .shape-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;
+    }
+    .shape-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 8px 2px; background: #0a0a18;
+      border: 1.5px solid #1c1c34; border-radius: 8px;
+      color: #555; font-size: 9px; cursor: pointer;
+      transition: all .15s; letter-spacing: .3px;
+    }
+    .shape-btn svg { width: 20px; height: 20px; }
+    .shape-btn:hover  { border-color: #3a5acc; color: #aaa; }
+    .shape-btn.active { border-color: #4d7fff; color: #4d7fff; background: #0d1428; }
+
+    /* ── Geo button ────────────────────────────────────────────────── */
+    #geoBtn {
+      width: 100%; padding: 8px 10px;
+      background: #0d0d20; border: 1px solid #1e1e38;
+      border-radius: 6px; color: #5577cc;
+      font-size: 11px; cursor: pointer; text-align: left;
+      display: flex; align-items: center; gap: 7px;
+      transition: background .15s;
+    }
+    #geoBtn:hover:not(:disabled) { background: #141428; }
+    #geoBtn:disabled { opacity: .5; cursor: not-allowed; }
+    #geoStatus { font-size: 10px; color: #3a3a5a; margin-top: 4px; line-height: 1.4; }
+
+    /* ── Generate button ───────────────────────────────────────────── */
+    #genBtn {
+      width: 100%; padding: 11px;
+      background: #2a4dcc; border: none; border-radius: 8px;
+      color: #fff; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: background .15s; letter-spacing: .3px;
+    }
+    #genBtn:hover:not(:disabled) { background: #3a5de0; }
+    #genBtn:disabled { background: #181830; color: #444; cursor: not-allowed; }
+
+    /* ── Stats ─────────────────────────────────────────────────────── */
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .sc { background: #0a0a18; border: 1px solid #1c1c30; border-radius: 7px; padding: 9px 11px; }
+    .sc .v { font-size: 17px; font-weight: 700; color: #4d7fff; }
+    .sc .v.ok   { color: #2ecc77; }
+    .sc .v.warn { color: #ffaa33; }
+    .sc .l { font-size: 9px; color: #444; margin-top: 2px; }
+
+    /* ── Error ─────────────────────────────────────────────────────── */
+    #errBox {
+      background: #1a0808; border: 1px solid #3d1010;
+      border-radius: 7px; padding: 9px 11px;
+      font-size: 11px; color: #ff6b6b; line-height: 1.5;
+      display: none;
+    }
+    #errBox.on { display: block; }
+
+    /* ── Map ───────────────────────────────────────────────────────── */
+    #map { flex: 1; position: relative; }
+
+    #ph {
+      position: absolute; inset: 0; display: flex;
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; color: #1e1e35; font-size: 13px; pointer-events: none;
+    }
+    #ph.gone { display: none; }
+
+    /* ── Map overlay ───────────────────────────────────────────────── */
+    #ov {
+      position: absolute; top: 12px; right: 12px;
+      background: rgba(10,10,21,.9); border: 1px solid #1c1c30;
+      border-radius: 10px; padding: 12px 15px; min-width: 150px;
+      backdrop-filter: blur(6px); display: none;
+    }
+    #ov.on { display: block; }
+    .or { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 5px; font-size: 12px; }
+    .or:last-child { margin-bottom: 0; }
+    .ol { color: #555; }
+    .ov { font-weight: 700; color: #4d7fff; }
+
+    .shape-badge {
+      position: absolute; bottom: 12px; left: 12px;
+      background: rgba(10,10,21,.85); border: 1px solid #1c1c30;
+      border-radius: 7px; padding: 6px 11px;
+      font-size: 11px; color: #666; display: none;
+      backdrop-filter: blur(4px);
+    }
+    .shape-badge.on { display: block; }
+  </style>
+</head>
+<body>
+
+<div id="panel">
+
+  <!-- Header -->
+  <div class="ph">
+    <h1>PICA RUN</h1>
+    <p>TESTOVACÍ GENERÁTOR TVARŮ</p>
+  </div>
+
+  <!-- API keys -->
+  <div class="sec">
+    <div class="sec-title">API klíče</div>
+    <div class="field">
+      <label>Mapy.cz – mapa &amp; dlaždice</label>
+      <input type="password" id="mapyKey" value="-9fnibO1PP26G0kjqV0WYhnKkNzO65_P0WTlHVxxDDk" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>OpenRouteService – routing</label>
+      <input type="password" id="orsKey" value="eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImU1NWFiZjRjNzNlODQ5YjlhMmE3YjIwYzhhYjZiMjdhIiwiaCI6Im11cm11cjY0In0=" autocomplete="off">
+    </div>
+  </div>
+
+  <!-- Shape picker -->
+  <div class="sec">
+    <div class="sec-title">Tvar trasy</div>
+    <div class="shape-grid">
+
+      <button class="shape-btn active" onclick="selectShape('circle')" id="sb-circle" title="Kruh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/></svg>
+        Kruh
+      </button>
+
+      <button class="shape-btn" onclick="selectShape('square')" id="sb-square" title="Čtverec">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="1"/></svg>
+        Čtverec
+      </button>
+
+      <button class="shape-btn" onclick="selectShape('triangle')" id="sb-triangle" title="Trojúhelník">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polygon points="12,3 22,21 2,21"/></svg>
+        Trojúhel.
+      </button>
+
+      <button class="shape-btn" onclick="selectShape('star')" id="sb-star" title="Hvězda">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polygon points="12,2 14.5,9.5 22,9.5 16.2,14.2 18.4,21.5 12,17 5.6,21.5 7.8,14.2 2,9.5 9.5,9.5"/></svg>
+        Hvězda
+      </button>
+
+      <button class="shape-btn" onclick="selectShape('pentagon')" id="sb-pentagon" title="Pětiúhelník">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polygon points="12,2 22,9 18,21 6,21 2,9"/></svg>
+        Pětiúhel.
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Location -->
+  <div class="sec">
+    <div class="sec-title">Výchozí bod</div>
+    <div class="field">
+      <button id="geoBtn" onclick="useGeolocation()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="9"/></svg>
+        Použít moji polohu
+      </button>
+      <div id="geoStatus">Výchozí poloha: centrum Prahy</div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Lat</label>
+        <input type="number" id="lat" value="50.0755" step="0.0001">
+      </div>
+      <div class="field">
+        <label>Lon</label>
+        <input type="number" id="lon" value="14.4378" step="0.0001">
+      </div>
+    </div>
+  </div>
+
+  <!-- Params -->
+  <div class="sec">
+    <div class="sec-title">Parametry</div>
+    <div class="field">
+      <label>Délka trasy (km)</label>
+      <input type="number" id="km" value="3" min="0.5" max="100" step="0.5">
+    </div>
+    <div class="field">
+      <label>Rotace tvaru (°)</label>
+      <input type="number" id="rot" value="0" min="-180" max="180" step="5">
+      <div class="hint">0° = výchozí orientace · ±90° otočí tvar</div>
+    </div>
+  </div>
+
+  <!-- Generate -->
+  <div class="sec">
+    <button id="genBtn" onclick="generate()">Generovat trasu</button>
+  </div>
+
+  <!-- Error -->
+  <div class="sec" id="errSec" style="display:none">
+    <div id="errBox"></div>
+  </div>
+
+  <!-- Stats -->
+  <div class="sec" id="statSec" style="display:none">
+    <div class="sec-title">Výsledek</div>
+    <div class="stat-grid">
+      <div class="sc"><div class="v" id="sLen">–</div><div class="l">Reálná délka</div></div>
+      <div class="sc"><div class="v" id="sTime">–</div><div class="l">Čas chůze</div></div>
+      <div class="sc"><div class="v" id="sDiff">–</div><div class="l">Odchylka</div></div>
+      <div class="sc"><div class="v" id="sWP">–</div><div class="l">Waypointy</div></div>
+    </div>
+  </div>
+
+</div><!-- /panel -->
+
+<!-- Map -->
+<div id="map">
+  <div id="ph">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=".8">
+      <path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z"/><path d="M9 4v13M15 7v13"/>
+    </svg>
+    Zadejte parametry a klikněte Generovat trasu
+  </div>
+
+  <div id="ov">
+    <div class="or"><span class="ol">Délka</span><span class="ov" id="ovLen">–</span></div>
+    <div class="or"><span class="ol">Čas</span><span class="ov" id="ovTime">–</span></div>
+    <div class="or"><span class="ol">Tvar</span><span class="ov" id="ovShape">–</span></div>
+  </div>
+
+  <div class="shape-badge" id="shapeBadge"></div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+<script>
+
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+const DETOUR = 1.18; // koeficient: reálná trasa ÷ vzdušná vzdálenost
+
+// ─── Shapes ───────────────────────────────────────────────────────────────────
+
+function geodesicOffset(lat, lon, distM, bearingDeg) {
+  const R = 6371000, b = bearingDeg * Math.PI / 180, d = distM / R;
+  const φ1 = lat * Math.PI / 180, λ1 = lon * Math.PI / 180;
+  const φ2 = Math.asin(Math.sin(φ1)*Math.cos(d) + Math.cos(φ1)*Math.sin(d)*Math.cos(b));
+  const λ2 = λ1 + Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(φ1), Math.cos(d)-Math.sin(φ1)*Math.sin(φ2));
+  return [λ2*180/Math.PI, φ2*180/Math.PI]; // [lon, lat]
+}
+
+function midpoint(a, b) { return [(a[0]+b[0])/2, (a[1]+b[1])/2]; }
+
+function polyWithMids(corners) {
+  const pts = [];
+  for (let i = 0; i < corners.length; i++) {
+    pts.push(corners[i]);
+    pts.push(midpoint(corners[i], corners[(i+1) % corners.length]));
+  }
+  pts.push(corners[0]);
+  return pts;
+}
+
+const SHAPES = {
+  circle: {
+    label: 'Kruh',
+    generate(lat, lon, km, rot) {
+      // 24 bodů = 25 waypointů (uzavřený kruh, každých 15°)
+      const R = (km * 1000) / (2 * Math.PI * DETOUR);
+      return Array.from({length: 25}, (_, i) =>
+        geodesicOffset(lat, lon, R, rot + (360/24)*i)
+      );
+    }
+  },
+
+  square: {
+    label: 'Čtverec',
+    generate(lat, lon, km, rot) {
+      // 4 rohy + 4 středobody stran = 9 waypointů
+      const hd = (km*1000/4) * Math.sqrt(2)/2 / DETOUR;
+      const c = [0,1,2,3].map(i => geodesicOffset(lat, lon, hd, rot+45+i*90));
+      return polyWithMids(c); // 9
+    }
+  },
+
+  triangle: {
+    label: 'Trojúhelník',
+    generate(lat, lon, km, rot) {
+      // 3 rohy + 3 středobody = 7 waypointů
+      const R = (km*1000/3) / (Math.sqrt(3) * DETOUR);
+      const c = [0,1,2].map(i => geodesicOffset(lat, lon, R, rot+i*120));
+      return polyWithMids(c); // 7
+    }
+  },
+
+  star: {
+    label: 'Hvězda',
+    generate(lat, lon, km, rot) {
+      // 5 vnějších + 5 vnitřních bodů = 11 waypointů
+      // obvod ≈ 10 × délka jednoho ramene hvězdy ≈ 7.27 × R_outer
+      const Ro = (km * 1000) / (7.27 * DETOUR);
+      const Ri = Ro * 0.382; // zlatý poměr
+      const pts = [];
+      for (let i = 0; i < 5; i++) {
+        pts.push(geodesicOffset(lat, lon, Ro, rot - 90 + i*72));
+        pts.push(geodesicOffset(lat, lon, Ri, rot - 90 + i*72 + 36));
+      }
+      pts.push(pts[0]);
+      return pts; // 11
+    }
+  },
+
+  pentagon: {
+    label: 'Pětiúhelník',
+    generate(lat, lon, km, rot) {
+      // 5 rohů + 5 středobodů = 11 waypointů
+      const R = (km * 1000) / (5 * 2 * Math.sin(Math.PI/5) * DETOUR);
+      const c = [0,1,2,3,4].map(i => geodesicOffset(lat, lon, R, rot - 90 + i*72));
+      return polyWithMids(c); // 11
+    }
+  },
+};
+
+let currentShape = 'circle';
+
+function selectShape(name) {
+  currentShape = name;
+  document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sb-' + name).classList.add('active');
+}
+
+// ─── Geolocation ──────────────────────────────────────────────────────────────
+
+function useGeolocation() {
+  if (!navigator.geolocation) {
+    setGeoStatus('❌ Geolokace není v tomto prohlížeči dostupná.', 'err');
+    return;
+  }
+
+  const btn = document.getElementById('geoBtn');
+  btn.disabled = true;
+  setGeoStatus('⏳ Zjišťuji polohu…', '');
+
+  // enableHighAccuracy: false → rychlé určení přes WiFi/síť (bez čekání na GPS čip)
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const { latitude: lat, longitude: lon, accuracy: acc } = pos.coords;
+      document.getElementById('lat').value = lat.toFixed(6);
+      document.getElementById('lon').value = lon.toFixed(6);
+      btn.disabled = false;
+      setGeoStatus(`✓ ${lat.toFixed(5)}, ${lon.toFixed(5)}  (±${Math.round(acc)} m)`, 'ok');
+    },
+    err => {
+      btn.disabled = false;
+      const msgs = {
+        1: '❌ Přístup zamítnut. V Chrome spusťte přes start_server.bat (localhost).',
+        2: '❌ Polohu nelze zjistit. Zadejte souřadnice ručně.',
+        3: '❌ Timeout. Zkuste znovu nebo zadejte souřadnice ručně.',
+      };
+      setGeoStatus(msgs[err.code] || '❌ ' + err.message, 'err');
+    },
+    { timeout: 15000, maximumAge: 300000, enableHighAccuracy: false }
+  );
+}
+
+function setGeoStatus(msg, cls) {
+  const el = document.getElementById('geoStatus');
+  el.textContent = msg;
+  el.style.color = cls === 'ok' ? '#2ecc77' : cls === 'err' ? '#ff6b6b' : '#3a3a5a';
+}
+
+// ─── ORS Routing ──────────────────────────────────────────────────────────────
+
+async function fetchORS(waypoints, key) {
+  const res = await fetch(
+    'https://api.openrouteservice.org/v2/directions/foot-walking/geojson',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': key,
+        'Content-Type': 'application/json',
+        'Accept': 'application/geo+json',
+      },
+      body: JSON.stringify({ coordinates: waypoints }), // waypoints jsou [lon,lat]
+    }
+  );
+
+  if (!res.ok) {
+    let msg = `ORS HTTP ${res.status}`;
+    try { const j = await res.json(); msg += ': ' + (j.error?.message || j.message || JSON.stringify(j)); }
+    catch { msg += ': ' + await res.text().catch(() => ''); }
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+// ─── Map ──────────────────────────────────────────────────────────────────────
+
+let map = null, mapyKeyActive = null;
+
+async function ensureMap(lat, lon, mapyKey) {
+  if (map && mapyKey === mapyKeyActive) {
+    map.flyTo({ center: [lon, lat], zoom: 13, duration: 600 });
+    return;
+  }
+  if (map) { map.remove(); map = null; }
+  mapyKeyActive = mapyKey;
+  document.getElementById('ph').classList.add('gone');
+
+  map = new maplibregl.Map({
+    container: 'map',
+    style: {
+      version: 8,
+      sources: { mapy: {
+        type: 'raster',
+        tiles: [`https://api.mapy.cz/v1/maptiles/outdoor/256/{z}/{x}/{y}?apikey=${mapyKey}`],
+        tileSize: 256,
+        attribution: '© <a href="https://mapy.cz">Mapy.cz</a> © OpenStreetMap',
+      }},
+      layers: [{ id: 'mapy', type: 'raster', source: 'mapy' }],
+    },
+    center: [lon, lat], zoom: 13,
+  });
+
+  await new Promise((ok, fail) => {
+    map.on('load', ok);
+    map.on('error', e => fail(new Error('Chyba mapy: ' + (e.error?.message || e.error))));
+  });
+}
+
+function renderRoute(geojson, startPt) {
+  ['rl', 'rc', 'sd', 'id'].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
+  ['rs', 'ss', 'is'].forEach(id => { if (map.getSource(id)) map.removeSource(id); });
+
+  // Geometrie z ORS
+  const coords = [];
+  for (const f of geojson.features || []) {
+    const g = f.geometry;
+    if (g?.type === 'LineString') coords.push(...g.coordinates);
+    if (g?.type === 'MultiLineString') g.coordinates.forEach(s => coords.push(...s));
+  }
+  if (!coords.length) throw new Error('ORS nevrátil geometrii trasy.');
+
+  // Trasa
+  map.addSource('rs', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: coords } } });
+  map.addLayer({ id: 'rc', type: 'line', source: 'rs',
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    paint: { 'line-color': '#060615', 'line-width': 10, 'line-opacity': .6 } });
+  map.addLayer({ id: 'rl', type: 'line', source: 'rs',
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    paint: { 'line-color': '#4d7fff', 'line-width': 5 } });
+
+  // Start
+  map.addSource('ss', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'Point', coordinates: startPt } } });
+  map.addLayer({ id: 'sd', type: 'circle', source: 'ss',
+    paint: { 'circle-radius': 9, 'circle-color': '#2ecc77', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } });
+
+  // Fit
+  const lons = coords.map(c=>c[0]), lats = coords.map(c=>c[1]);
+  map.fitBounds([[Math.min(...lons),Math.min(...lats)],[Math.max(...lons),Math.max(...lats)]], { padding: 55, duration: 700 });
+}
+
+function showStats(geojson, wps, targetKm) {
+  const summary = geojson.features?.[0]?.properties?.summary || {};
+  const distM   = summary.distance || 0;
+  const durS    = summary.duration || 0;
+  const realKm  = distM / 1000;
+  const diff    = targetKm > 0 ? (realKm - targetKm) / targetKm * 100 : 0;
+  const mins    = Math.round(durS / 60);
+  const timeStr = mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins} min`;
+  const sign    = diff >= 0 ? '+' : '';
+  const cls     = Math.abs(diff) <= 15 ? 'ok' : 'warn';
+  const shape   = SHAPES[currentShape].label;
+
+  // Panel
+  document.getElementById('sLen').textContent  = realKm > 0 ? `${realKm.toFixed(2)} km` : '–';
+  document.getElementById('sTime').textContent = durS   > 0 ? timeStr : '–';
+  document.getElementById('sWP').textContent   = `${wps.length}`;
+  const dEl = document.getElementById('sDiff');
+  dEl.textContent = realKm > 0 ? `${sign}${diff.toFixed(1)}%` : '–';
+  dEl.className = `v ${cls}`;
+  document.getElementById('statSec').style.display = 'block';
+
+  // Overlay
+  document.getElementById('ovLen').textContent   = realKm > 0 ? `${realKm.toFixed(2)} km` : '–';
+  document.getElementById('ovTime').textContent  = durS   > 0 ? timeStr : '–';
+  document.getElementById('ovShape').textContent = shape;
+  document.getElementById('ov').classList.add('on');
+
+  // Badge
+  const badge = document.getElementById('shapeBadge');
+  badge.textContent = `${shape} · ${wps.length - 1} seg. · cíl ${targetKm} km`;
+  badge.classList.add('on');
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
+async function generate() {
+  const mapyKey = document.getElementById('mapyKey').value.trim();
+  const orsKey  = document.getElementById('orsKey').value.trim();
+  const lat     = parseFloat(document.getElementById('lat').value);
+  const lon     = parseFloat(document.getElementById('lon').value);
+  const km      = parseFloat(document.getElementById('km').value);
+  const rot     = parseFloat(document.getElementById('rot').value) || 0;
+
+  hideErr();
+  document.getElementById('statSec').style.display = 'none';
+  document.getElementById('ov').classList.remove('on');
+  document.getElementById('shapeBadge').classList.remove('on');
+
+  if (!mapyKey)           return err('Zadejte Mapy.cz API klíč.');
+  if (!orsKey)            return err('Zadejte OpenRouteService API klíč.');
+  if (isNaN(lat)||isNaN(lon)) return err('Neplatné souřadnice.');
+  if (isNaN(km)||km<=0)   return err('Zadejte kladnou délku trasy v km.');
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true; btn.textContent = 'Generuji…';
+
+  try {
+    await ensureMap(lat, lon, mapyKey);
+
+    const wps = SHAPES[currentShape].generate(lat, lon, km, rot);
+    console.log(`[PicaRun] ${SHAPES[currentShape].label} – ${wps.length} waypointů:`, wps);
+
+    const geojson = await fetchORS(wps, orsKey);
+    console.log('[PicaRun] ORS:', geojson);
+
+    renderRoute(geojson, wps[0]);
+    showStats(geojson, wps, km);
+
+  } catch (e) {
+    err(e.message);
+    console.error('[PicaRun]', e);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Generovat trasu';
+  }
+}
+
+function err(msg) {
+  document.getElementById('errBox').textContent = msg;
+  document.getElementById('errBox').classList.add('on');
+  document.getElementById('errSec').style.display = 'block';
+}
+function hideErr() {
+  document.getElementById('errBox').classList.remove('on');
+  document.getElementById('errSec').style.display = 'none';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !document.getElementById('genBtn').disabled) generate();
+});
+</script>
+</body>
+</html>
