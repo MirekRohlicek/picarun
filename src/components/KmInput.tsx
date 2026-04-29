@@ -15,7 +15,10 @@ export function KmInput() {
           max={100}
           step={0.5}
           value={km}
-          onChange={(e) => setKm(Number(e.target.value))}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value);
+            if (!isNaN(v) && v >= 0.5 && v <= 100) setKm(v);
+          }}
           className="flex-1 bg-transparent text-cream text-sm font-semibold outline-none w-0"
         />
         <span className="text-secondary text-xs shrink-0">km</span>

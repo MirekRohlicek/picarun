@@ -1,7 +1,8 @@
+import type { ReactNode } from 'react';
 import { SHAPE_IDS, SHAPE_LABELS, type ShapeId } from '../lib/shapes';
 import { useAppStore } from '../store/useAppStore';
 
-const SHAPE_ICONS: Record<ShapeId, React.ReactNode> = {
+const SHAPE_ICONS: Record<ShapeId, ReactNode> = {
   diamond:  <polygon points="12,2 22,12 12,22 2,12" />,
   circle:   <circle cx="12" cy="12" r="10" />,
   square:   <rect x="2" y="2" width="20" height="20" />,

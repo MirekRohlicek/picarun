@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Panel } from './components/Panel';
 import { MapView } from './components/MapView';
 import { useAppStore } from './store/useAppStore';
@@ -26,40 +26,30 @@ export default function App() {
     );
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const center: [number, number] = [lon, lat];
+  // Memoize center to avoid flyTo firing on every render
+  const center = useMemo<[number, number]>(() => [lon, lat], [lon, lat]);
 
   return (
     <div className="flex h-screen overflow-hidden">
-
-      {/* ── Desktop: panel + mapa vždy vedle sebe ── */}
-      <div className="hidden md:flex w-full">
-        <div className="w-72 shrink-0">
-          <Panel />
-        </div>
-        <div className="flex-1 relative">
-          <MapView center={center} route={route} />
-          {route && <KmPill distanceM={route.distanceM} />}
-        </div>
+      {/* Panel – always mounted, hidden on mobile when map is shown */}
+      <div className={`w-full md:w-72 shrink-0 ${view === 'map' ? 'hidden md:flex' : 'flex'} flex-col`}>
+        <Panel />
       </div>
 
-      {/* ── Mobil: přepínání panel / mapa ── */}
-      <div className="flex md:hidden w-full flex-col">
-        {view === 'panel' ? (
-          <Panel />
-        ) : (
-          <div className="relative flex-1">
-            <MapView center={center} route={route} />
-            {route && <KmPill distanceM={route.distanceM} />}
-            <button
-              onClick={() => setView('panel')}
-              className="absolute top-3 left-3 bg-bg/90 backdrop-blur border border-panel rounded-lg px-3 py-1.5 text-xs text-cream"
-            >
-              ← Zpět
-            </button>
-          </div>
+      {/* Map – always mounted (single MapLibre instance), hidden on mobile when panel is shown */}
+      <div className={`flex-1 relative ${view === 'panel' ? 'hidden md:flex' : 'flex'}`}>
+        <MapView center={center} route={route} />
+        {route && <KmPill distanceM={route.distanceM} />}
+        {view === 'map' && (
+          <button
+            onClick={() => setView('panel')}
+            aria-label="Zpět na panel"
+            className="absolute top-3 left-3 bg-bg/90 backdrop-blur border border-panel rounded-lg px-3 py-1.5 text-xs text-cream"
+          >
+            ← Zpět
+          </button>
         )}
       </div>
-
     </div>
   );
 }

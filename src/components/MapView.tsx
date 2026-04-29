@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-const MAPY_KEY = import.meta.env.VITE_MAPY_CZ_API_KEY as string;
+const MAPY_KEY: string = import.meta.env.VITE_MAPY_CZ_API_KEY ?? '';
 
 interface Props {
   center: [number, number]; // [lon, lat]
@@ -60,8 +60,12 @@ export function MapView({ center, route }: Props) {
       drawRoute(map, route.coordinates);
     };
 
-    if (map.isStyleLoaded()) render();
-    else map.once('load', render);
+    if (map.isStyleLoaded()) {
+      render();
+    } else {
+      map.once('load', render);
+      return () => { map.off('load', render); };
+    }
   }, [route]);
 
   return <div ref={containerRef} className="w-full h-full" />;

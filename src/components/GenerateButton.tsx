@@ -1,7 +1,7 @@
 import { useAppStore } from '../store/useAppStore';
 import { generateRoute } from '../lib/generate';
 
-const ORS_KEY = import.meta.env.VITE_ORS_API_KEY as string;
+const ORS_KEY: string = import.meta.env.VITE_ORS_API_KEY ?? '';
 
 export function GenerateButton() {
   const { shape, km, rotationDeg, lat, lon, generating, startGenerating, setRoute, setError } =
