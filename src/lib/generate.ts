@@ -25,6 +25,8 @@ export async function generateRoute(
     const waypoints = generateWaypoints(shape, lat, lon, targetKm * kmScale, rotationDeg);
     result = await fetchRoute(waypoints, apiKey);
 
+    if (result.distanceM <= 0) break;
+
     const deviation = Math.abs(result.distanceM - targetM) / targetM;
     if (deviation <= 0.05) break;
 
